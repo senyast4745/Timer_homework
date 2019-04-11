@@ -36,3 +36,4 @@
 * https://developer.android.com/guide/components/broadcasts
 * https://developer.android.com/reference/android/app/PendingIntent
 * https://developer.android.com/guide/components/intents-filters
+* (UPD 11.04) https://developer.android.com/training/notify-user/channels
