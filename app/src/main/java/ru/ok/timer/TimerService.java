@@ -26,24 +26,27 @@ public class TimerService extends Service {
     private Timer timer = null;
     long timeMillis;
     IncomingHandler inHandler;
-    static final int TIME_TO_ACTIVITY = 1;
-    static final int SCHEDULE = 4;
     static final int TIME_FROM_ACTIVITY = 0;
+    static final int TIME_TO_ACTIVITY = 1;
     static final int PAUSE = 2;
-    static final int CONTINUE = 5;
     static final int RESET = 3;
+    static final int SCHEDULE = 4;
+    static final int CONTINUE = 5;
     static final int CHECK_CONNECT = 6;
+    static final int NOT_EXIST = 7;
 
     Messenger messenger;
     Messenger toActivityMessenger;
-    private boolean isPaused = false;
+    private boolean isExist = false;
     private boolean isScheduled = false;
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOG_TAG, "service start");
+        isExist = true;
         startTask();
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -52,11 +55,12 @@ public class TimerService extends Service {
         super.onCreate();
         Log.d(LOG_TAG, "service onCreate");
 
-//        HandlerThread thread = new HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND);
-//        thread.start();
+        HandlerThread thread = new HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND);
+        thread.start();
 
-        inHandler = new IncomingHandler(Looper.getMainLooper());
+        inHandler = new IncomingHandler(thread.getLooper());
         messenger = new Messenger(inHandler);
+        timer = new Timer();
 
 
     }
@@ -64,6 +68,7 @@ public class TimerService extends Service {
     @Override
     public void onDestroy() {
         Log.d(LOG_TAG, "Destroyed");
+        resetTimer();
         super.onDestroy();
     }
 
@@ -71,14 +76,20 @@ public class TimerService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(LOG_TAG, "Bind");
-        timer = new Timer();
-        //timeMillis = intent.getLongExtra("time", 10);
-        if (!isScheduled) {
-            startTask();
-            return messenger.getBinder();
-        } else {
-            return null;
+        if(!isScheduled){
+            Log.d(LOG_TAG, "ready to start");
+            Message outMsg = Message.obtain(inHandler, NOT_EXIST);
+            outMsg.replyTo = messenger;
+
+            try {
+                if (toActivityMessenger != null)
+                    toActivityMessenger.send(outMsg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
+        //timeMillis = intent.getLongExtra("time", 10);
+        return messenger.getBinder();
     }
 
 
@@ -156,7 +167,6 @@ public class TimerService extends Service {
 
             switch (msg.what) {
                 case TIME_FROM_ACTIVITY:
-                    isPaused = false;
                     if ((long) msg.obj != 0) {
                         timeMillis = (long) msg.obj;
                     }
@@ -165,7 +175,6 @@ public class TimerService extends Service {
                     break;
 
                 case PAUSE:
-                    isPaused = true;
                     resetTimer();
                     Log.d(LOG_TAG, "OK paused");
                     break;
@@ -187,7 +196,6 @@ public class TimerService extends Service {
                     Log.d(LOG_TAG, "OK rested");
                     break;
                 case CONTINUE:
-                    isPaused = false;
                     isScheduled = true;
                     startTask();
                     Log.d(LOG_TAG, "OK resumed");

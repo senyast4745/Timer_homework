@@ -1,11 +1,8 @@
 package ru.ok.timer;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.animation.TimeInterpolator;
 import android.annotation.SuppressLint;
-import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -31,9 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String LOG_TAG = "MainActivity";
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String FORMAT = "%02d:%02d:%02d";
-    ActivityRecord activityRecord;
     TimerService timerService;
     EditText editText;
     Button startOrStop;
@@ -42,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     boolean isStop;
     Button resetButton;
     Timer timer;
+    Intent intent;
     final Messenger messenger = new Messenger(new IncomingHandler());
     Messenger toServiceMessenger;
     TestServiceConnection testServConn;
@@ -57,16 +54,11 @@ public class MainActivity extends AppCompatActivity {
         handler = new IncomingHandler();
         final String[] timeString = new String[1];
         final long[] timerTime = new long[1];
-        Intent intent = new Intent(MainActivity.this, TimerService.class);
-        boolean res = bindService(intent, (testServConn = new TestServiceConnection()), 0);
-        Log.d(LOG_TAG ,"res is " + res);
-        if(res){
-            Log.d(LOG_TAG, "ready to start service");
-            startService(intent);
-            //bindService(intent, testServConn, 0);
-        } else {
-            Log.d(LOG_TAG, "not binned");
-        }
+        intent = new Intent(MainActivity.this, TimerService.class);
+        //startService(intent);
+        //boolean res = true;
+        testServConn = new TestServiceConnection();
+        bindService(intent, (testServConn), 0);
         timer = new Timer();
         //TODO
         isScheduled = false;
@@ -129,9 +121,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         Log.d(LOG_TAG, "main unbind");
         unbindService(testServConn);
-
     }
 
     @SuppressLint("DefaultLocale")
@@ -159,6 +157,10 @@ public class MainActivity extends AppCompatActivity {
 
                     Toast.makeText(getApplicationContext(), "Schedule", Toast.LENGTH_SHORT).show();
                     break;
+                case TimerService.NOT_EXIST:
+                    startService(intent);
+                    Log.d(LOG_TAG, "Start Service");
+                    break;
             }
         }
     }
@@ -170,7 +172,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(LOG_TAG, "Connected");
             Message msg = Message.obtain(null, TimerService.CHECK_CONNECT);
             msg.replyTo = messenger;
-            //msg.obj = 0L; //наш счетчик
             try {
                 toServiceMessenger.send(msg);
             } catch (RemoteException e) {
