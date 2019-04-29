@@ -30,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String FORMAT = "%02d:%02d:%02d";
-    TimerService timerService;
     EditText editText;
     Button startOrStop;
     IncomingHandler handler;
@@ -47,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        timerService = new TimerService();
         editText = findViewById(R.id.timer);
         startOrStop = findViewById(R.id.btn_start_stop);
         resetButton = findViewById(R.id.btn_reset);
@@ -58,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         //startService(intent);
         //boolean res = true;
         testServConn = new TestServiceConnection();
-        bindService(intent, (testServConn), 0);
+        bindService(intent, (testServConn), BIND_AUTO_CREATE);
         timer = new Timer();
         //TODO
         isScheduled = false;
@@ -156,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(LOG_TAG, "scheduled OK");
 
                     Toast.makeText(getApplicationContext(), "Schedule", Toast.LENGTH_SHORT).show();
+                    isScheduled = false;
+                    startOrStop.setText(getString(R.string.start_button));
                     break;
                 case TimerService.NOT_EXIST:
                     startService(intent);

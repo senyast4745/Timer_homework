@@ -37,14 +37,12 @@ public class TimerService extends Service {
 
     Messenger messenger;
     Messenger toActivityMessenger;
-    private boolean isExist = false;
     private boolean isScheduled = false;
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOG_TAG, "service start");
-        isExist = true;
         startTask();
 
         return super.onStartCommand(intent, flags, startId);
@@ -76,14 +74,15 @@ public class TimerService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(LOG_TAG, "Bind");
-        if(!isScheduled){
-            Log.d(LOG_TAG, "ready to start");
+        if (!isScheduled) {
             Message outMsg = Message.obtain(inHandler, NOT_EXIST);
             outMsg.replyTo = messenger;
-
+            //Log.d(LOG_TAG, "ready message " + toActivityMessenger.toString());
             try {
-                if (toActivityMessenger != null)
+                if (toActivityMessenger != null) {
+                    Log.d(LOG_TAG, "Send not_exist message");
                     toActivityMessenger.send(outMsg);
+                }
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -120,10 +119,11 @@ public class TimerService extends Service {
 
                     outMsg.obj = timeMillis;
                     outMsg.replyTo = messenger;
-                    Log.d(LOG_TAG, "run " + timeMillis);
                     try {
-                        if (toActivityMessenger != null)
+                        if (toActivityMessenger != null) {
+                            Log.d(LOG_TAG, "send time to activity " + timeMillis);
                             toActivityMessenger.send(outMsg);
+                        }
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
@@ -138,18 +138,19 @@ public class TimerService extends Service {
                     resetTimer();
                     isScheduled = false;
                     timeMillis = 0;
-                    Log.d(LOG_TAG, "scheduled " + isScheduled);
                     Message outMsg = Message.obtain(inHandler, SCHEDULE);
                     outMsg.replyTo = messenger;
 
                     try {
-                        if (toActivityMessenger != null)
+                        if (toActivityMessenger != null){
+                            Log.d(LOG_TAG, "Send schedule");
                             toActivityMessenger.send(outMsg);
+                        }
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
                 }
-            }, timeMillis);
+            }, timeMillis+10);
             Log.d(LOG_TAG, "SecondStep");
 
         }
